@@ -1,5 +1,17 @@
 ---
 - include: pxeboot_servers.yml
+- hosts: all:!osic_container:!deploy
+  tasks:
+    - name: "Check port 22 is open"
+      local_action:
+        module: wait_for
+        host: "{{ ansible_ssh_host }}"
+        port: 22
+        state: started
+      sudo: false
+
+    - name: "Give SSH more time"
+      pause: seconds=20
 - name: add ssh fingerprints to deployment host
   hosts: deploy
   tasks:
