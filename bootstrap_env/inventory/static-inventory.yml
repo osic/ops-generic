@@ -1,0 +1,37 @@
+[deploy]
+intelci-node01 ansible_ssh_host=172.24.0.21
+
+[osic_container]
+osic-prep ansible_ssh_host=172.24.0.22
+
+[controller]
+controller01 ansible_ssh_host=172.24.0.23
+controller02 ansible_ssh_host=172.24.0.24
+controller03 ansible_ssh_host=172.24.0.25
+controller04 ansible_ssh_host=172.24.0.27
+controller05 ansible_ssh_host=172.24.0.28
+
+[logging]
+logging01 ansible_ssh_host=172.24.0.26
+
+[cinder]
+cinder01 ansible_ssh_host=172.24.0.29
+cinder02 ansible_ssh_host=172.24.0.30
+cinder03 ansible_ssh_host=172.24.0.31
+
+[swift]
+swift01 ansible_ssh_host=172.24.0.32
+swift02 ansible_ssh_host=172.24.0.33
+swift03 ansible_ssh_host=172.24.0.34
+
+[compute]
+compute01 ansible_ssh_host=172.24.0.35
+compute02 ansible_ssh_host=172.24.0.36
+compute03 ansible_ssh_host=172.24.0.37
+compute04 ansible_ssh_host=172.24.0.38
+compute05 ansible_ssh_host=172.24.0.39
+compute06 ansible_ssh_host=172.24.0.40
+compute07 ansible_ssh_host=172.24.0.41
+compute08 ansible_ssh_host=172.24.0.42
+compute09 ansible_ssh_host=172.24.0.43
+

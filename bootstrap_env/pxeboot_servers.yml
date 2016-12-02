@@ -1,0 +1,35 @@
+---
+- name: bootstrap cobbler and pxeboot servers
+  hosts: 'osic_container'
+  remote_user: root
+  become: yes
+  vars_files:
+    - vars/env.yml
+  tasks:
+  - name: clean cobbler systems if there is any
+    shell: |
+      for i in `cobbler system list`; do
+        cobbler system remove --name $i;
+      done
+  - name: add servers to cobbler
+    shell: python generate_cobbler_system.py /root/input.csv | bash
+    args:
+      chdir: /root/rpc-prep-scripts
+  - name: verify cobbler system entries are added and sync cobbler
+    shell: cobbler system list & cobbler sync
+    register: out
+  - debug: var=out
+  - name: reboot servers to start pxebooting
+    shell: |
+      for i in $(cat /root/ilo.csv); do
+        NAME=$(echo $i | cut -d',' -f1);
+        IP=$(echo $i | cut -d',' -f2);
+        echo $NAME;
+        ipmitool -I lanplus -H $IP -U {{ USERNAME }} -P {{ PASSWORD }} chassis bootdev pxe;
+        sleep 1;
+        ipmitool -I lanplus -H $IP -U {{ USERNAME }} -P {{ PASSWORD }} power reset;
+      done
+    register: outt
+  - debug: var=outt
+  - name: "wait untill all servers finsih pxebooting: this should take less than 20 minutes"
+    script: ./wait_pxe.sh

@@ -1,0 +1,62 @@
+---
+- name: bootstrap cobbler and pxeboot servers
+  hosts: 'osic_container'
+  remote_user: root
+  become: yes
+  vars_files:
+    - vars/env.yml
+  tasks:
+  - name: clean cobbler systems if there is any
+    shell: |
+      for i in `cobbler system list`; do 
+        cobbler system remove --name $i; 
+      done
+  - name: add servers to cobbler
+    shell: python generate_cobbler_system.py /root/input.csv | bash
+    args:
+      chdir: /root/rpc-prep-scripts
+  - name: verify cobbler system entries are added and sync cobbler
+    shell: cobbler system list & cobbler sync
+    register: out
+  - debug: var=out
+  - name: reboot servers to start pxebooting
+    shell: |
+      for i in $(cat /root/ilo.csv); do
+        NAME=$(echo $i | cut -d',' -f1);
+        IP=$(echo $i | cut -d',' -f2);
+        echo $NAME;
+        ipmitool -I lanplus -H $IP -U {{ USERNAME }} -P {{ PASSWORD }} chassis bootdev pxe;
+        sleep 1;
+        ipmitool -I lanplus -H $IP -U {{ USERNAME }} -P {{ PASSWORD }} power reset;
+      done
+    register: outt
+  - debug: var=outt
+  - name: "wait untill all servers finsih pxebooting: this should take less than 20 minutes"
+    script: ./wait_pxe.sh
+- name: add ssh fingerprints to deployment host
+  hosts: deploy
+  tasks:
+  - name: 
+    shell: |
+      for i in $(cat /opt/osic-ref-impl/playbooks/inventory/static-inventory.yml | awk /ansible_ssh_host/ | cut -d'=' -f2); do
+        ssh-keygen -R $i
+        ssh-keyscan -H $i >> /root/.ssh/known_hosts
+      done 
+- include: bootstrap.yml
+- include: remove-lvs-nova00.yml
+- include: remove-lvs-deleteme00.yml
+- name: update the kernel
+  hosts: controller:logging:cinder:swift:compute
+  tasks:
+  - name: update the kernel
+    shell: apt-get update; apt-get install -y linux-generic-lts-xenial
+  - name: restart machine
+    shell: sleep 2 && shutdown -r now "Ansible updates triggered"
+    async: 1
+    poll: 0
+    ignore_errors: true
+
+  - name: waiting for server to come back
+    local_action: wait_for host={{ inventory_hostname }} state=started delay=30 timeout=300
+- include: swift-disks-prepare.yml
+- include: create-network-interfaces.yml

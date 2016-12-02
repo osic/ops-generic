@@ -1,0 +1,43 @@
+---
+- hosts: all:!osic_container:!deploy
+  tasks:
+  - name: Add SSH public keys to root user
+    authorized_key:
+      user=root
+      key="{{ item }}"
+    with_file:
+      - /root/.ssh/id_rsa.pub
+
+  - name: Ensure packages are installed
+    apt:
+      pkg={{ item }}
+      state=present
+    with_items:
+      - vim
+      - vlan
+      - ifenslave
+      - ifenslave-2.6
+      - bridge-utils
+      - lsof
+      - lvm2
+      - ntp
+      - ntpdate
+      - openssh-server
+      - sudo
+      - tcpdump
+      - debootstrap
+
+  - name: "Ensure kernel module(s)"
+    modprobe:
+      name: "{{ item }}"
+    with_items:
+      - bonding
+      - 8021q
+
+  - name: "Ensure kernel module(s) loaded at boot"
+    lineinfile:
+      dest: /etc/modules
+      line: "{{ item }}"
+    with_items:
+      - bonding
+      - 8021q

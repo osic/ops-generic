@@ -1,0 +1,14 @@
+# 502 - MANAGEMENT_NET - 172.24.8.0/22
+# 531 - STORAGE_NET    - 172.24.104.0/22
+# 532 - OVERLAY_NET    - 172.24.108.0/22
+# 533 - FLAT_NET       - 172.24.112.0/22
+pxe_network: 172.24.0.0/22
+
+management_vlan: 502
+management_network: 172.24.8.0/22
+storage_vlan: 531
+storage_network: 172.24.104.0/22
+overlay_vlan: 532
+overlay_network: 172.24.108.0/22
+flat_vlan: 533
+flat_network: 172.24.112.0/22

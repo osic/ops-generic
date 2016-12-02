@@ -1,0 +1,17 @@
+---
+- include: pxeboot_servers.yml
+- name: add ssh fingerprints to deployment host
+  hosts: deploy
+  tasks:
+  - name: 
+    shell: |
+      for i in $(cat /opt/osic-ref-impl/playbooks/inventory/static-inventory.yml | awk /ansible_ssh_host/ | cut -d'=' -f2); do
+        ssh-keygen -R $i
+        ssh-keyscan -H $i >> /root/.ssh/known_hosts
+      done 
+- include: bootstrap.yml
+- include: remove-lvs-nova00.yml
+- include: remove-lvs-deleteme00.yml
+- include: update_kernel.yml
+- include: swift-disks-prepare.yml
+- include: create-network-interfaces.yml
