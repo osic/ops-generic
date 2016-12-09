@@ -1,0 +1,103 @@
+---
+
+- name: Setup across all nodes
+  remote_user: root
+  hosts: localhost:salt_minions
+  gather_facts: false
+  become: yes
+  
+  vars:
+    packages:
+      - stress-ng
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items: "{{ packages }}"
+
+- name: Setup salt-master
+  remote_user: root
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  vars:
+    packages:
+      - salt-master
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items: "{{ packages }}"
+    - file:
+        path: "/tmp/ansible_salt_facts.yml"
+        state: absent
+    - file:
+        path: "/tmp/ansible_salt_facts.yml"
+        state: touch
+    - name: Write salt master ip to temp facts
+      lineinfile:
+        state: present
+        dest: /tmp/ansible_salt_facts.yml
+        line: "salt_master: {{ ansible_default_ipv4.address }}"
+    - name: Start Salt Master Service
+      service: 
+        name: salt-master        
+        state: started
+    - name: Write master fingerprint to temp facts
+      shell: "salt-key -f master.pub | awk '/master.pub/ { print $2 }'"
+      register: salt_key
+    - lineinfile:
+        state: present
+        dest: /tmp/ansible_salt_facts.yml
+        line: "salt_master_fingerprint: {{ salt_key.stdout }}"
+
+- name: Setup salt-minions
+  remote_user: root
+  hosts: salt_minions
+  become: yes
+  
+  vars:
+    packages:
+      - salt-minion
+
+  tasks:
+    - include_vars: /tmp/ansible_salt_facts.yml
+    - lineinfile:
+        state: absent
+        regexp: '^(.*)  salt$'
+        dest: /etc/hosts
+    - name: Set salt host in /etc/hosts
+      lineinfile:
+        state: present
+        dest: /etc/hosts
+        line: "{{ salt_master }}  salt"
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: latest
+      with_items: "{{ packages }}"
+    - name: Insert master fingerprint into minion conf
+      lineinfile:
+        state: present
+        regexp: "^#master_finger*"
+        dest: /etc/salt/minion
+        line: "master_finger: '{{ salt_master_fingerprint }}'"
+    - name: Start Salt Minions
+      service:
+        name: salt-minion
+        state: started
+
+- name: Finalize Setup
+  remote_user: root
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  tasks: 
+    - name: Accept Salt Minion Keys
+      shell: "echo y | salt-key -A"
