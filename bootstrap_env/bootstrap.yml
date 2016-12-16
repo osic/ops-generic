@@ -12,6 +12,7 @@
     apt:
       pkg={{ item }}
       state=present
+      force=yes
     with_items:
       - vim
       - vlan
