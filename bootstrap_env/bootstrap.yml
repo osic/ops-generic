@@ -12,7 +12,7 @@
     apt:
       pkg={{ item }}
       state=present
-      force=yes
+      update_cache=yes
     with_items:
       - vim
       - vlan
