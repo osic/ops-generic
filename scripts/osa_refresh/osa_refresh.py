@@ -94,19 +94,39 @@ class client(object):
     def clean_neutron(self, session, white_list=None):
         neutron = session.network
         n_gen = neutron.networks(details=False)
+        s_gen = neutron.security_groups()
+        r_gen = neutron.routers()
         if white_list is None:
             wnetworks = ''
+            wsecurity = ''
+            wrouters = ''
         else:
             wnetworks = white_list.get('networks', '')
+            wsecurity = white_list.get('security_groups', '')
+            wrouters = white_list.get('routers', '')
         wnetworks = wnetworks.split()
+        wsecurity = wsecurity.split()
+        wrouters = wrouters.split()
+        protected_groups = ['default']        
+        for s in s_gen:
+            if s.id not in wsecurity and s.name not in protected_groups:
+                neutron.delete_security_group(s.id)
+                print("Security Group: %s has been marked for deletion."
+                      % s.id)
+        for r in r_gen:
+            if r.id not in wrouters:
+                neutron.delete_router(r.id)
+                print("Router: %s has been marked for deletion." % r.id)
         for n in n_gen:
             if n.id not in wnetworks:
                 network = neutron.find_network(n.id)
+                for port in neutron.ports(network_id=n.id):
+                    neutron.delete_port(port.id)
+                    print("Port: %s has been marked for deletion." % port.id)
                 for subnet in network.subnet_ids:
-                    ports = neutron.ports(subnet_id=subnet.id)
-                    for pid in ports:
-                        neutron.delete_port(pid)
-                    neutron.delete_subnet(subnet.id)
+                    neutron.delete_subnet(subnet)
+                    print("Subnet: %s on network %s has been marked for "
+                          "deletion." % (subnet,n.name))
                 neutron.delete_network(n.id)
                 print("Network: %s has been marked for deletion." % n.id)       
         return
@@ -119,10 +139,22 @@ class client(object):
         else:
             wvolumes = white_list.get('volumes', '')
         wvolumes = wvolumes.split()
+        volumes = []
         for v in v_gen:
             if v.id not in wvolumes:
-                cinder.delete_volume(v.id)
-                print("Volume: %s has been marked for deletion." % n.id)
+                for s in cinder.snapshots(details=False, volume_id=v.id):
+                    cinder.delete_snapshot(s.id, ignore_missing=True)
+                volumes.append(v.id)
+         #NOTE(tpownall): this will throw a 404 exception after
+         # run is complete due to an issue with openstack sdk
+         # attemping to perform a GET / against volumes with 
+         # the marker pointing to the volume we just deleted.
+         # To work around this we delete the volume outside
+         # of the python generator loop.
+        for vid in volumes:
+            if vid is not None:    
+                cinder.delete_volume(vid, ignore_missing=True)    
+                print("Volume: %s has been marked for deletion." % vid)
         return
         
     def clean_identity(self, session, white_list=None):
@@ -212,17 +244,23 @@ if __name__ == '__main__':
                  users
                  projects
                  domains
+                 security_groups
+                 routers
               """
         sys.exit(1337) 
-   
+     
     #clean compute (servers/images/keypairs)
+    print("\nPreparing to Clean Nova as user %s." % user)
     client_obj.clean_nova(session, white_list)
 
     #clean neutron
+    print("\nPreparing to Clean Neutron as user %s." % user)
     client_obj.clean_neutron(session, white_list)
    
     #clean cinder
+    print("\nPreparing to Clean Cinder as user %s." % user)
     client_obj.clean_cinder(session, white_list)
 
     #clean identity
+    print("\nPreparing to Clean Identity as user %s." % user)
     client_obj.clean_identity(session, white_list)
