@@ -21,6 +21,8 @@ osa_whitelist.yml format example (uuid or id only):
                  users
                  projects
                  domains
+                 security_groups
+                 routers
 
 How to use:
 
