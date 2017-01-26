@@ -21,6 +21,7 @@ osa_whitelist.yml format example (uuid or id only):
                  users
                  projects
                  domains
+                 roles
                  security_groups
                  routers
 
@@ -31,5 +32,5 @@ run script from deployment host
 
 Python requirements:
 
-openstacksdk
-yaml
+pip install python-openstacksdk
+pip install yaml

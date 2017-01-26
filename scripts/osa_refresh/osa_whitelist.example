@@ -7,3 +7,18 @@ flavors:
     3
     4
     5
+
+domains:
+    87a36f37-88e7-436d-bf47-cd1e40d161e1
+
+roles:
+    eb56450e-117d-433b-8c36-1041633f34eb
+
+servers:
+    116cbb3e-5457-47c4-83fa-b9dc04ceb45a
+
+keypairs:
+    5345f0db-66f7-444e-8048-279295fec52c
+
+volumes:
+    cf7077d5-f7ff-402a-9065-a226738fc8a6
