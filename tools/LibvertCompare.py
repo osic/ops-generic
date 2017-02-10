@@ -10,3 +10,5 @@ class childArgParser(ArgParser):
 
 parser = ArgParser()
 parser.validate()
+
+auth = Authentication()

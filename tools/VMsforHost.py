@@ -4,7 +4,7 @@
 # python VMSforHost.py --host <FQDN of Compute Host>
 
 import sys
-sys.path.append('../common/')
+sys.path.append('../common/lib/')
 
 # Import needed libraries located in common directory
 from ArgParser import ArgParser
