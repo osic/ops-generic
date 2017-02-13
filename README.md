@@ -3,21 +3,21 @@ to make there tasks/troubleshooting easier.
 
 The structure of the repo is as follows:
 
-ops-generic/
-           /ansible/
-                   /playbooks
-                   /scripts
-           /common/
-                  /lib/
-           /tools/
-                 /libvert_compare/
-                 /osa_refresh/
-                 /vms_for_host/
-                 .
-                 .
-                 .
-                 .
-           /tests/
+ops-generic/<br>
+           /ansible/<br>
+                   /playbooks<br>
+                   /scripts<br>
+           /common/<br>
+                  /lib/<br>
+           /tools/<br>
+                 /libvert_compare/<br>
+                 /osa_refresh/<br>
+                 /vms_for_host/<br>
+                 .<br>
+                 .<br>
+                 .<br>
+                 .<br>
+           /tests/<br>
        
 Ansible playbooks are located under /ansible directory.
 
