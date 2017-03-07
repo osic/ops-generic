@@ -21,20 +21,30 @@ class osa_import(object):
 
     def query_craton(self, endpoint, headers, next_link=None):
         url = ('%s/%s' % (os.environ['CRATON_URL'], endpoint))
-        if next_link is not None:
-            url = (next_link)
-        r = requests.get(
-            url = url,
-            headers=self.headers
-            )
+        try:
+            if next_link is not None:
+                url = (next_link)
+            r = requests.get(
+                url = url,
+                headers=self.headers
+                )
+        except:
+            print("\nOops, something went wrong. Is Craton API up?\n")
+            sys.exit()
+
         return r.text
    
     def delete_host(self, host_id):
         url = ('%s/hosts/%s' % (os.environ['CRATON_URL'], host_id))
-        r = requests.delete(
-            url = url,
-            headers=self.headers
-            )
+        try:
+            r = requests.delete(
+                url = url,
+                headers=self.headers
+                )
+        except:
+            print("\nOops, something went wrong. Is Craton API up?\n")
+            sys.exit()
+
         return r.status_code
 
     def get_hosts(self, next_link=None):
@@ -73,18 +83,23 @@ class osa_import(object):
 
     def insert_craton(self, endpoint, data, method='post'):
         url = ('%s/%s' % (os.environ['CRATON_URL'], endpoint))
-        if 'post' in method:
-            r = requests.post(
-                url = url,
-                data=json.dumps(data),
-                headers=self.headers
-                )
-        if 'put' in method:
-            r = requests.put(
-                url = url,
-                data=json.dumps(data),
-                headers=self.headers
-                )
+        try:
+            if 'post' in method:
+                r = requests.post(
+                    url = url,
+                    data=json.dumps(data),
+                    headers=self.headers
+                    )
+            if 'put' in method:
+                r = requests.put(
+                    url = url,
+                    data=json.dumps(data),
+                    headers=self.headers
+                    )
+        except:
+            print("\nOops, something went wrong. Is Craton API up?\n")
+            sys.exit()
+
         return r.status_code, r.text
     
 
@@ -139,7 +154,7 @@ class osa_import(object):
         cmd = ("ansible -i %s, 'all' -m setup" % hip)
         proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE).stdout.read()
         facts = proc.split('=>')[1]
-        var_data = json.loads(facts)
+        var_data = json.loads(facts)['ansible_facts']
         s,t = self.insert_craton(('hosts/%s/variables' % hid), var_data,
                                 method = 'put')
         return s
