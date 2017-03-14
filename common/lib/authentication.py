@@ -14,6 +14,7 @@
 # the group's policy or not. It can be also used to list the instances in the group id 
 # specified in the argument.
 #
+#
 
 from keystoneclient.auth import identity
 from keystoneclient import session
