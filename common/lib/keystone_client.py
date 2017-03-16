@@ -10,20 +10,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-# This tool is used to check if instances within the same anti-affinity group are violating
-# the group's policy or not. It can be also used to list the instances in the group id 
-# specified in the argument.
+# This tool is used to check if instances within the same anti-affinity
+# group are violating the group's policy or not. It can be also used to
+# list the instances in the group id specified in the argument.
 #
 
 from keystoneauth1.identity import v3
 from keystoneauth1 import session
 from keystoneclient.v3 import client
 
+
 class KeystoneClient(object):
     """
     Keystone connection base class
     """
-    def __init__(self,auth):
+
+    def __init__(self, auth):
         """
         Constructor for creating a keystone object
         """
@@ -34,7 +36,7 @@ class KeystoneClient(object):
         Returns the list og project ids
         """
         return self.keystone.projects.list()
-    
+
     def get_user_dict(self):
         """
         Returns list of users in dictionary format
@@ -42,6 +44,5 @@ class KeystoneClient(object):
         _users_hash = {}
         users = self.keystone.users.list()
         for user in users:
-           _users_hash[user.id] = user
+            _users_hash[user.id] = user
         return _users_hash
-

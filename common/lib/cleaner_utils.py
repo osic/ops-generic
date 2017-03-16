@@ -15,19 +15,29 @@ from openstack import connection
 from openstack import profile
 from openstack import utils
 
+
 class config_loader(object):
-    
+
     def __init__(self, white_list_file):
         self.white_list = white_list_file
-    
+
     def load(self):
         with open(self.white_list, 'r') as f:
             data = yaml.load(f)
         return data
 
+
 class client(object):
-    
-    def __init__(self, project_domain, user_domain, project, user, password, auth_url, region):
+
+    def __init__(
+            self,
+            project_domain,
+            user_domain,
+            project,
+            user,
+            password,
+            auth_url,
+            region):
         self.project_domain = project_domain
         self.user_domain = user_domain
         self.project = project
@@ -37,23 +47,23 @@ class client(object):
         self.region = region
 
     def auth(self):
-        prof=profile.Profile()
+        prof = profile.Profile()
         prof.set_interface('compute', 'internal')
         prof.set_interface('volume', 'internal')
         prof.set_interface('network', 'internal')
         prof.set_interface('image', 'internal')
         prof.set_interface('identity', 'internal')
         conn = connection.Connection(
-            profile = prof,
-            auth_url = self.auth_url,
-            project_domain_name = self.project_domain,
-            user_domain_name = self.user_domain,
-            project_name = self.project,
-            username = self.user,
-            password = self.password
-           )
+            profile=prof,
+            auth_url=self.auth_url,
+            project_domain_name=self.project_domain,
+            user_domain_name=self.user_domain,
+            project_name=self.project,
+            username=self.user,
+            password=self.password
+        )
         return conn
- 
+
     def clean_nova(self, session, white_list=None):
         nova = session.compute
         s_gen = nova.servers(details=False)
@@ -83,11 +93,13 @@ class client(object):
         # in bad http request and python exception when
         # iterating through f_gen.
         for f in f_gen:
-            f_list.append((f.name,f.id))
-        for f_name,f_id in f_list:
-            if f_id not in wflavors:        
+            f_list.append((f.name, f.id))
+        for f_name, f_id in f_list:
+            if f_id not in wflavors:
                 nova.delete_flavor(f_id)
-                print("Flavor: %s with id %s has been marked for deletion." % (f_name,f_id))
+                print(
+                    "Flavor: %s with id %s has been marked for deletion." %
+                    (f_name, f_id))
         for i in i_gen:
             if i.id not in wimages:
                 nova.delete_image(i.id)
@@ -97,7 +109,7 @@ class client(object):
                 nova.delete_keypair(k.id)
                 print("Keypair: %s has been marked for deletion." % k.id)
         return
-        
+
     def clean_neutron(self, session, white_list=None):
         neutron = session.network
         n_gen = neutron.networks(details=False)
@@ -114,7 +126,7 @@ class client(object):
         wnetworks = wnetworks.split()
         wsecurity = wsecurity.split()
         wrouters = wrouters.split()
-        protected_groups = ['default']        
+        protected_groups = ['default']
         for s in s_gen:
             if s.id not in wsecurity and s.name not in protected_groups:
                 neutron.delete_security_group(s.id)
@@ -133,14 +145,14 @@ class client(object):
                 for subnet in network.subnet_ids:
                     neutron.delete_subnet(subnet)
                     print("Subnet: %s on network %s has been marked for "
-                          "deletion." % (subnet,n.name))
+                          "deletion." % (subnet, n.name))
                 neutron.delete_network(n.id)
-                print("Network: %s has been marked for deletion." % n.id)       
+                print("Network: %s has been marked for deletion." % n.id)
         return
 
     def clean_cinder(self, session, white_list=None):
         cinder = session.block_store
-        v_gen = cinder.volumes(details=True) 
+        v_gen = cinder.volumes(details=True)
         if white_list is None:
             wvolumes = ''
         else:
@@ -152,24 +164,25 @@ class client(object):
             if v.id not in wvolumes:
                 for s in cinder.snapshots(details=False, volume_id=v.id):
                     snapshots.append(s.id)
-                volumes.append((v.id,v.status))
-         #NOTE(tpownall): this will throw a 404 exception after
-         # run is complete due to an issue with openstack sdk
-         # attemping to perform a GET / against volumes with 
-         # the marker pointing to the volume we just deleted.
-         # To work around this we delete the volume outside
-         # of the python generator loop.
+                volumes.append((v.id, v.status))
+
+        # NOTE(tpownall): this will throw a 404 exception after
+        # run is complete due to an issue with openstack sdk
+        # attemping to perform a GET / against volumes with
+        # the marker pointing to the volume we just deleted.
+        # To work around this we delete the volume outside
+        # of the python generator loop.
         for snap in snapshots:
             if snap is not None:
                 cinder.delete_snapshot(snap, ignore_missing=True)
                 print("Volume Snapshot: %s has been marked for deletion." %
                       snap)
-        for vid,vstatus in volumes:
-            if vid is not None and 'deleting' not in vstatus: 
-                cinder.delete_volume(vid, ignore_missing=True)    
+        for vid, vstatus in volumes:
+            if vid is not None and 'deleting' not in vstatus:
+                cinder.delete_volume(vid, ignore_missing=True)
                 print("Volume: %s has been marked for deletion." % vid)
         return
-        
+
     def clean_identity(self, session, white_list=None):
         ident = session.identity
         u_gen = ident.users()
@@ -191,26 +204,42 @@ class client(object):
         wdomains = wdomains.split()
         wroles = wroles.split()
 
-        protected_users = ['keystone','glance','stack_domain_admin','neutron',
-                           'nova','cinder','admin','swift','dispersion',
-                           'heat']
-        protected_projects = ['service','admin']
+        protected_users = [
+            'keystone',
+            'glance',
+            'stack_domain_admin',
+            'neutron',
+            'nova',
+            'cinder',
+            'admin',
+            'swift',
+            'dispersion',
+            'heat']
+        protected_projects = ['service', 'admin']
         protected_domains = ['Default', 'heat']
-        protected_roles = ['heat_stack_user','swiftoperator','ResellerAdmin',
-                           'admin','_member_','heat_stack_owner']
+        protected_roles = ['heat_stack_user', 'swiftoperator', 'ResellerAdmin',
+                           'admin', '_member_', 'heat_stack_owner']
         for u in u_gen:
             if u.id not in wusers and u.name not in protected_users:
                 ident.delete_user(u.id)
-                print("User: %s with alias %s has been marked for deletion." % (u.id,u.name))
+                print(
+                    "User: %s with alias %s has been marked for deletion." %
+                    (u.id, u.name))
         for p in p_gen:
             if p.id not in wprojects and p.name not in protected_projects:
                 ident.delete_project(p.id)
-                print("Project: %s with alias %s has been marked for deletion." % (p.id,p.name))
+                print(
+                    "Project: %s with alias %s has been marked for deletion." %
+                    (p.id, p.name))
         for d in d_gen:
             if d.id not in wdomains and d.name not in protected_domains:
                 ident.delete_domain(d.id)
-                print("Domain: %s with alias %s has been marked for deletion." % (d.id,d.name))
+                print(
+                    "Domain: %s with alias %s has been marked for deletion." %
+                    (d.id, d.name))
         for r in r_gen:
             if r.id not in wroles and r.name not in protected_roles:
                 ident.delete_role(r.id)
-                print("Role: %s with alias %s has been marked for deletion." % (r.id,r.name))
+                print(
+                    "Role: %s with alias %s has been marked for deletion." %
+                    (r.id, r.name))

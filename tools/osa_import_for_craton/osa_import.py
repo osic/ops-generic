@@ -7,6 +7,7 @@ import requests
 import argparse
 import time
 
+
 class osa_import(object):
 
     def __init__(self, inventory, region, cloud):
@@ -25,23 +26,23 @@ class osa_import(object):
             if next_link is not None:
                 url = (next_link)
             r = requests.get(
-                url = url,
+                url=url,
                 headers=self.headers
-                )
-        except:
+            )
+        except BaseException:
             print("\nOops, something went wrong. Is Craton API up?\n")
             sys.exit()
 
         return r.text
-   
+
     def delete_host(self, host_id):
         url = ('%s/hosts/%s' % (os.environ['CRATON_URL'], host_id))
         try:
             r = requests.delete(
-                url = url,
+                url=url,
                 headers=self.headers
-                )
-        except:
+            )
+        except BaseException:
             print("\nOops, something went wrong. Is Craton API up?\n")
             sys.exit()
 
@@ -52,16 +53,24 @@ class osa_import(object):
         container_hosts = []
         unknown_hosts = []
         while True:
-            #Sleep 1 second to not overwhelm Craton API.
+            # Sleep 1 second to not overwhelm Craton API.
             time.sleep(1)
-            data = json.loads(self.query_craton(('hosts?limit=100&region_id=%s'
-                               % self.region), self.headers, next_link))
+            data = json.loads(
+                self.query_craton(
+                    ('hosts?limit=100&region_id=%s' %
+                     self.region),
+                    self.headers,
+                    next_link))
             try:
-                next_link = [s for s in data.get('links', None) if 'next' in s.get('rel',
-                            None)][0].get('href')
+                next_link = [
+                    s for s in data.get(
+                        'links',
+                        None) if 'next' in s.get(
+                        'rel',
+                        None)][0].get('href')
             except IndexError:
                 break
-            for k,v in data.items():
+            for k, v in data.items():
                 for item in v:
                     if item.get('id', None) is not None:
                         host_var = {}
@@ -77,31 +86,29 @@ class osa_import(object):
                         else:
                             unknown_hosts.append(host_var)
 
-        #returns id of hosts.
-        return baremetal_hosts,container_hosts,unknown_hosts
-             
+        # returns id of hosts.
+        return baremetal_hosts, container_hosts, unknown_hosts
 
     def insert_craton(self, endpoint, data, method='post'):
         url = ('%s/%s' % (os.environ['CRATON_URL'], endpoint))
         try:
             if 'post' in method:
                 r = requests.post(
-                    url = url,
+                    url=url,
                     data=json.dumps(data),
                     headers=self.headers
-                    )
+                )
             if 'put' in method:
                 r = requests.put(
-                    url = url,
+                    url=url,
                     data=json.dumps(data),
                     headers=self.headers
-                    )
-        except:
+                )
+        except BaseException:
             print("\nOops, something went wrong. Is Craton API up?\n")
             sys.exit()
 
         return r.status_code, r.text
-    
 
     def gen_baremetal(self):
         baremetal_list = []
@@ -116,16 +123,17 @@ class osa_import(object):
                 baremetal_list.append(dev)
         return baremetal_list
 
-
     def gen_containers(self):
-        b,c,u = self.get_hosts()
+        b, c, u = self.get_hosts()
         parents = b
         container_list = []
         for k, v in self.inv['_meta']['hostvars'].items():
             for parent in parents:
                 pname = parent.get('name', None)
                 pid = parent.get('id', None)
-                if v.get('is_metal', False) is False and pname in v['physical_host']:
+                if v.get(
+                    'is_metal',
+                        False) is False and pname in v['physical_host']:
                     dev = {}
                     dev['name'] = k
                     dev['ip_address'] = v['ansible_ssh_host']
@@ -140,10 +148,9 @@ class osa_import(object):
         hname = host.get('name')
         hid = host.get('id')
         var_data = self.inv['_meta']['hostvars'].get(hname, None)
-        s,t = self.insert_craton(('hosts/%s/variables' % hid), var_data,
-                                method = 'put')
+        s, t = self.insert_craton(('hosts/%s/variables' % hid), var_data,
+                                  method='put')
         return s
-
 
     def import_ansible_facts(self, host):
         from subprocess import PIPE
@@ -155,10 +162,9 @@ class osa_import(object):
         proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE).stdout.read()
         facts = proc.split('=>')[1]
         var_data = json.loads(facts)['ansible_facts']
-        s,t = self.insert_craton(('hosts/%s/variables' % hid), var_data,
-                                method = 'put')
+        s, t = self.insert_craton(('hosts/%s/variables' % hid), var_data,
+                                  method='put')
         return s
-
 
     def label_hosts(self, labels, host):
         hname = host.get('name')
@@ -182,32 +188,32 @@ class osa_import(object):
             var_data = {'labels': labels + ['heat']}
         if 'rabbit' in hname:
             var_data = {'labels': labels + ['rabbit']}
-        s,t = self.insert_craton(('hosts/%s/labels' % hid), var_data, 
-                                method = 'put')
+        s, t = self.insert_craton(('hosts/%s/labels' % hid), var_data,
+                                  method='put')
         return s
 
     def action_status(self, status, item, host):
         if s == 200:
             msg = ('Action %s for host %s was successful.' %
-                    (item, host.get('name', None)))
+                   (item, host.get('name', None)))
         elif s == 201:
             msg = ('Create action %s for host %s was successful.' %
-                    (item, host.get('name', None)))
+                   (item, host.get('name', None)))
         elif s == 204:
             msg = ('Delete action %s for host %s was successful.' %
-                    (item, host.get('name', None)))
+                   (item, host.get('name', None)))
         elif s == 409:
             msg = ('Action %s for host %s failed (Duplicate entry).' %
-                    (item, host.get('name', None)))
+                   (item, host.get('name', None)))
         else:
             msg = ('Action %s for host %s has failed (Unknown reason).' %
-                    (item, host.get('name', None)))
+                   (item, host.get('name', None)))
         return msg
+
 
 if __name__ == '__main__':
 
-
-    #check for environment vars
+    # check for environment vars
     try:
         os.environ['OS_USERNAME']
         os.environ['OS_PASSWORD']
@@ -216,7 +222,7 @@ if __name__ == '__main__':
     except KeyError:
         print """
 
- Please source your craton RC file first. 
+ Please source your craton RC file first.
 
  The following OS variables are missing:
 
@@ -224,12 +230,11 @@ if __name__ == '__main__':
  OS_PASWORD
  OS_PROJECT_ID
  CRATON_URL
-                
+
 """
         sys.exit()
 
-
-    #call argparse
+    # call argparse
     parser = argparse.ArgumentParser(description="""Import OSA iventory into
                                     Craton.""")
     parser.add_argument('--inventory', help='--inventory inventory file.',
@@ -243,7 +248,7 @@ if __name__ == '__main__':
     parser.add_argument('--delete', help='Delete all hosts from Craton.',
                         action='store_true')
     parser.add_argument('--ansible-facts', help='Gather ansible host facts.',
-                        action='store_true')    
+                        action='store_true')
     args = parser.parse_args()
     cloud = args.cloud
     region = args.region
@@ -258,43 +263,42 @@ if __name__ == '__main__':
     if host_import is False and truncate is False:
         print('No action was provided. Plase specify --load or --truncate')
         sys.exit()
-    
-    #load inventory
+
+    # load inventory
     try:
         with open(os.path.expanduser(invfile)) as f:
             inventory = json.loads(f.read())
     except IOError:
-        print """ OSA inventory file not provided. Please pass the path 
+        print """ OSA inventory file not provided. Please pass the path
  of the file as the first argument to this script.
 """
 
-    #init osa class
+    # init osa class
     osa = osa_import(inventory, region, cloud)
 
-
-    #import baremetal
+    # import baremetal
     if host_import:
         print("\n Importing baremetal hosts into Craton from inventory.\n")
         for host in osa.gen_baremetal():
-            s,t = osa.insert_craton('hosts', host)
+            s, t = osa.insert_craton('hosts', host)
             response = osa.action_status(s, 'host', host)
             print response
 
-    #import containers
+    # import containers
     if host_import:
         print("\n Importing container hosts into Craton from inventory.\n")
         for host in osa.gen_containers():
-            s,t = osa.insert_craton('hosts', host)
+            s, t = osa.insert_craton('hosts', host)
             response = osa.action_status(s, 'host', host)
             print response
 
-    #import variables for hosts and create labels
+    # import variables for hosts and create labels
     if host_import:
         print("\n Importing host variables into Craton from inventory.\n")
-        b,c,u = osa.get_hosts()
+        b, c, u = osa.get_hosts()
         all_hosts = b + c
         for host in b:
-            s = osa.label_hosts(['baremetal', 'on-metal','physical'], host)
+            s = osa.label_hosts(['baremetal', 'on-metal', 'physical'], host)
             response = osa.action_status(s, 'label', host)
             print response
         for host in c:
@@ -310,17 +314,17 @@ if __name__ == '__main__':
                 response = osa.action_status(s, 'ansible_facts', host)
                 print response
 
-    #delete all hosts from craton inventory
+    # delete all hosts from craton inventory
     if truncate:
         print("\n Deleting all hosts from Craton inventory.\n")
-        b,c,u = osa.get_hosts()
-        #delete all containers first (required to delete parent post
+        b, c, u = osa.get_hosts()
+        # delete all containers first (required to delete parent post
         for host in c:
             s = osa.delete_host(host.get('id', None))
             response = osa.action_status(s, 'host', host)
             print response
 
-        #delete all baremetal hosts
+        # delete all baremetal hosts
         for host in b:
             s = osa.delete_host(host.get('id', None))
             response = osa.action_status(s, 'host', host)

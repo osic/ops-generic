@@ -10,8 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-# This tool is used to check if instances within the same anti-affinity group are violating
-# the group's policy or not. It can be also used to list the instances in the group id 
+# This tool is used to check if instances within the same anti-affinity
+# group are violating  the group's policy or not. It can be also used to
+# list the instances in the group id
 # specified in the argument.
 #
 #
@@ -21,26 +22,29 @@ from keystoneclient import session
 import os
 import sys
 
+
 class Authentication(object):
     """
     Authentication base class
     """
+
     def __init__(self):
         """
         Constructor for authenticating openrc credentials
         """
         try:
-                credentials = {}
-                credentials['project_domain_name'] = os.environ['OS_PROJECT_DOMAIN_NAME']
-                credentials['user_domain_name'] = os.environ['OS_USER_DOMAIN_NAME']
-                credentials['project_name'] = os.environ['OS_PROJECT_NAME']
-                credentials['username'] = os.environ['OS_USERNAME']
-                credentials['password'] = os.environ['OS_PASSWORD']
-                credentials['auth_url'] = os.environ['OS_AUTH_URL']
-                auth = identity.v3.Password(**credentials)
-                self.sess = session.Session(auth=auth)
-                self.authenticated = True
+            credentials = {}
+            credentials['project_domain_name'] =\
+                os.environ['OS_PROJECT_DOMAIN_NAME']
+            credentials['user_domain_name'] = os.environ['OS_USER_DOMAIN_NAME']
+            credentials['project_name'] = os.environ['OS_PROJECT_NAME']
+            credentials['username'] = os.environ['OS_USERNAME']
+            credentials['password'] = os.environ['OS_PASSWORD']
+            credentials['auth_url'] = os.environ['OS_AUTH_URL']
+            auth = identity.v3.Password(**credentials)
+            self.sess = session.Session(auth=auth)
+            self.authenticated = True
         except KeyError as k:
-                self.authenticated = False
-                print "Please source the openrc file"
-                sys.exit(1)
+            self.authenticated = False
+            print "Please source the openrc file"
+            sys.exit(1)

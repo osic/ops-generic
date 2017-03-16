@@ -10,9 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-# This tool is used to check if instances within the same anti-affinity group are violating
-# the group's policy or not. It can be also used to list the instances in the group id 
-# specified in the argument.
+# This tool is used to check if instances within the same anti-affinity
+# group are violating the group's policy or not. It can be also used to
+# list the instances in the group id specified in the argument.
 #
 from novaclient import client as nova_client
 from keystoneclient.auth import identity
@@ -20,15 +20,17 @@ from keystoneclient import session
 import os
 from collections import Counter
 
+
 class NovaClient(object):
     """
     Nova connection base class
     """
-    def __init__(self,auth):
+
+    def __init__(self, auth):
         """
         Constructor for creating a nova object
         """
-        self.nova = nova_client.Client('2',session=auth.sess)
+        self.nova = nova_client.Client('2', session=auth.sess)
 
     def nova_vm_list(self):
         """
@@ -36,9 +38,10 @@ class NovaClient(object):
         """
         return self.nova.servers.list()
 
-    def get_vms_for_host(self,host):
+    def get_vms_for_host(self, host):
         """
-        Return the list of Virtual Machines along with their owner based on the compute host specified
+        Return the list of Virtual Machines along with their owner
+        based on the compute host specified
         """
         vms = []
         for server in self.nova.servers.list(search_opts={'all_tenants': 1}):
@@ -79,9 +82,9 @@ class NovaClient(object):
             hypervisor = getattr(instance,
                                  'OS-EXT-SRV-ATTR:hypervisor_hostname'
                                  .split('.')[0])
-            ret.append({'id':uid,
-                        'name':instance.name,
-                        'hypervisor':hypervisor})
+            ret.append({'id': uid,
+                        'name': instance.name,
+                        'hypervisor': hypervisor})
         return ret
 
     def get_group_detail(self, server_group_id):
@@ -117,7 +120,7 @@ class NovaClient(object):
         else:
             return False
 
-    def check_all(self,json):
+    def check_all(self, json):
         """
         Check all server groups for violations
         """
@@ -129,7 +132,7 @@ class NovaClient(object):
                 merged_output += output
             elif output and not self.json:
                 print "Anti-affinity rules violated in Server Group:",\
-                            group.id
+                    group.id
                 print_table(output)
         if json and merged_output:
             print json.dumps(merged_output)
