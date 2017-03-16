@@ -1,0 +1,4 @@
+export CRATON_URL=http://104.130.4.171:8080/v1
+export OS_PROJECT_ID=717e9a216e2d44e0bc848398563bda06
+export OS_USERNAME=demo
+export OS_PASSWORD=demo
