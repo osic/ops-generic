@@ -109,9 +109,17 @@ class AntiaffinityCheck(object):
         A method to seting up authentication and necessary clients for
         the tool - Called by Constructor
         """
-        auth = Authentication()
-        self.novaclient = NovaClient(auth)
-        self.keystoneclient = KeystoneClient(auth)
+        # This dance can be slightly a bit better, but for now, let's just
+        # keep it operating like it was before. This will get a configuration
+        # based on envvars. If the user has a clouds.yaml file with more than
+        # one cloud defined, the user will need to define OS_CLOUD and maybe
+        # OS_REGION_NAME to indicate which one
+        config = os_client_config.OpenStackConfig()
+        cloud_config = config.get_one_cloud()
+        # As a further TODO - we should get rid of NovaClient and
+        # KeystoneClient altogether and add whatever they don't have to shade.
+        self.novaclient = NovaClient(cloud_config)
+        self.keystoneclient = KeystoneClient(cloud_config)
 
     def create_table(self, fields):
         """

@@ -15,21 +15,19 @@
 # list the instances in the group id specified in the argument.
 #
 
-from keystoneauth1.identity import v3
-from keystoneauth1 import session
-from keystoneclient.v3 import client
-
 
 class KeystoneClient(object):
     """
     Keystone connection base class
     """
 
-    def __init__(self, auth):
+    def __init__(self, config):
         """
         Constructor for creating a keystone object
+
+        :param config: `os_client_config.cloud_config.CloudConfig` object
         """
-        self.keystone = client.Client(session=auth.sess)
+        self.keystone = config.get_legacy_client('identity')
 
     def project_list(self):
         """

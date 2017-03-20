@@ -14,9 +14,6 @@
 # group are violating the group's policy or not. It can be also used to
 # list the instances in the group id specified in the argument.
 #
-from novaclient import client as nova_client
-from keystoneclient.auth import identity
-from keystoneclient import session
 import os
 from collections import Counter
 
@@ -26,11 +23,13 @@ class NovaClient(object):
     Nova connection base class
     """
 
-    def __init__(self, auth):
+    def __init__(self, config):
         """
         Constructor for creating a nova object
+
+        :param config: `os_client_config.cloud_config.CloudConfig` object
         """
-        self.nova = nova_client.Client('2', session=auth.sess)
+        self.nova = config.get_legacy_client('compute')
 
     def nova_vm_list(self):
         """
